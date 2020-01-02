@@ -36,6 +36,38 @@ plotDensity <- function(sces, feature=c("total_counts","total_features","pct_cou
 }
 
 
+#' plotViolin 
+#' @description plot the distribution of total_counts, total_features, pct_counts_Mt (percentage of mtRNA counts) or pct_counts_rRNA (percentage of rRNA counts) for multiple single cell RNAseq datasets
+#' @param sces a list of SingleCellExperiment objects; each object containing QC metadata for each dataset; (results from \code{\link{Process_scRNAseq}} )
+#' @param feature string; which features to plot; features can be total_counts, total_features, pct_counts_Mt, pct_counts_rRNA; (default: total_counts)
+#' @param featureLabel string; label of feature
+#' @param scolors vector of color
+#' @param lineSize integer; size of line
+#' @import ggplot2 SingleCellExperiment ggpubr
+#' @export
+#' @examples 
+#' library(scRNABatchQC)
+#' sces<-Process_scRNAseq(inputfiles=c("https://github.com/liuqivandy/scRNABatchQC/raw/master/bioplar1.csv.gz",
+#'                                     "https://github.com/liuqivandy/scRNABatchQC/raw/master/bioplar5.csv.gz"))
+#'                 
+#' plotViolin(sces,"total_counts")
+#' # plot the total counts distribution of the first dataset
+#' plotViolin(sces[1],"total_counts")
+#' @seealso \code{\link{Process_scRNAseq}} 
+plotViolin <- function(sces, feature=c("total_counts","total_features","pct_counts_Mt","pct_counts_rRNA"), 
+                        featureLabel=NULL, scolors = 1:length(sces), lineSize = 1 ) {
+  
+  feature<-match.arg(feature)
+  featureData <- .getRawColData(sces, feature)
+  featureLabel<- ifelse(is.null(featureLabel),feature, featureLabel)
+  
+  p <- ggpubr::ggviolin(featureData, x = "Sample", y = "Value", add = "median", fill = "Sample", x.text.angle = 90) +
+    xlab(featureLabel) + ylab(feature) +
+    ggtitle(feature)+
+    theme(plot.title = element_text(hjust = 0.5), legend.position = "none")
+  return(p)
+}
+
 #' plot the gene count distribution
 #' @description plot the gene count distribution of top n (default:500) highly expressed genes 
 #' @param sces list; a list of SingleCellExperiment objects; each object containing QC metadata for each dataset; (results from \code{\link{Process_scRNAseq}} )

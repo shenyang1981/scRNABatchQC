@@ -25,6 +25,7 @@
 #' @param pointSize float; the point size of figures in the report  (default: 0.8)
 #' @param chunk.size NULL or integer; default is NULL, suggesting data will be loaded into memory at one time, otherwise, the data will be loaded into memory by chunks with chunk.size
 #' @param createReport logical; default is TRUE, suggesting html report file will be created
+#' @param pwComparison logical; default is False, pairwise comparison
 #' @return a list of SingleCellExperiment objects;
 #'  \itemize{
 #'  \item  {       sces: a list of SingleCellExperiment objects; each object contains technical and biological metadata for one scRNAseq dataset; see the output of  \code{\link{Process_scRNAseq} }}
@@ -58,15 +59,15 @@
 #' 
 #' @export
 #' @seealso \code{\link{Process_scRNAseq}}, \code{\link{Combine_scRNAseq}} , \code{\link{generateReport}}
-scRNABatchQC<-function(inputs,names=NULL, nHVGs=1000,nPCs=10,sf=10000,mincounts=500,mingenes=200, maxmito=0.2, PCind=1, mtRNA="^mt-|^MT-", rRNA="^Rp[sl][[:digit:]]|^RP[SL][[:digit:]]", sampleRatio=1, logFC=1,FDR=0.01, organism="mmusculus", outputFile="report.html", lineSize=1, pointSize=0.8,chunk.size=NULL, createReport=TRUE){
+scRNABatchQC<-function(inputs,names=NULL, nHVGs=1000,nPCs=10,sf=10000,mincounts=500,mingenes=200, maxmito=0.2, PCind=1, mtRNA="^mt-|^MT-", rRNA="^Rp[sl][[:digit:]]|^RP[SL][[:digit:]]", sampleRatio=1, logFC=1,FDR=0.01, organism="mmusculus", outputFile="report.html", lineSize=1, pointSize=0.8,chunk.size=NULL, createReport=TRUE, pwComparison = FALSE, saturation = NULL){
   isOrganismValid<-.isOrganismValid(organism)
   if(! isOrganismValid){
     organism<-NULL
   }
   sces<-Process_scRNAseq(inputs=inputs,names=names,nHVGs=nHVGs, nPCs=nPCs,sf=sf, mincounts=mincounts, mingenes=mingenes, maxmito=maxmito,PCind=PCind,mtRNA=mtRNA, rRNA=rRNA, organism=organism, chunk.size=chunk.size)
-  scesMerge<-Combine_scRNAseq(sces,nHVGs=nHVGs, nPCs= nPCs, logFC=logFC,FDR=FDR,sampleRatio=sampleRatio,organism=organism)
+  scesMerge<-Combine_scRNAseq(sces,nHVGs=nHVGs, nPCs= nPCs, logFC=logFC,FDR=FDR,sampleRatio=sampleRatio,organism=organism, pwComparison = pwComparison)
   if(createReport){
-    generateReport(sces,scesMerge, outputFile=outputFile, lineSize=lineSize, pointSize=pointSize)
+    generateReport(sces,scesMerge, outputFile=outputFile, lineSize=lineSize, pointSize=pointSize, pwComparison = pwComparison, saturation = saturation)
   }
   return(list(sces = sces, 
               scesMerge = scesMerge ))
@@ -196,6 +197,7 @@ Process_scRNAseq <- function(inputs, names=NULL, nHVGs=1000, nPCs=10,sf=10000,mi
 #' @param FDR float; FDR cutoff to select differentially expressed genes (default: 0.01)
 #' @param sampleRatio float; the ratio of cells sampled from each dataset to examine the expression similarity(default: 1)
 #' @param organism string; the organism of single cell RNAseq datasets;if supported by WebGestaltR, the functional enrichment will be performed; (defeault: mmusculus) 
+#' @param pwComparison logical; default is False, pairwise comparison
 #' @return a SingleCellExperiment object with several slots:
 #' \itemize{
 #' 	               \item {         assays; ShallowSimpleListAssays object containing one sparse matrix  logcounts (log-transformed normalized counts) }
@@ -227,7 +229,7 @@ Process_scRNAseq <- function(inputs, names=NULL, nHVGs=1000, nPCs=10,sf=10000,mi
 #' scesMerge@metadata$diffFC
 #' @seealso \code{\link{Process_scRNAseq}} , \code{\link{generateReport}}
 
-Combine_scRNAseq <- function(sces, nHVGs=1000, nPCs= 10, logFC=1,FDR=0.01,sampleRatio=1,organism="mmusculus") {
+Combine_scRNAseq <- function(sces, nHVGs=1000, nPCs= 10, logFC=1,FDR=0.01,sampleRatio=1,organism="mmusculus", pwComparison = FALSE) {
   if (sampleRatio>1) stop("sampleRatio must be <=1")
   
   isOrganismValid<-.isOrganismValid(organism)
@@ -272,13 +274,15 @@ Combine_scRNAseq <- function(sces, nHVGs=1000, nPCs= 10, logFC=1,FDR=0.01,sample
   scesMerge@elementMetadata$hvg<-pca_tsne_data$hvg
   
   #compare conditions
-  cat("Performing differential expression analysis data ...\n")
-  scesMerge@metadata$diffFC <- .getDiffGenes(scesMerge, organism = organism,  logFC=logFC, FDR = FDR, geneNo = 50)
-  scesMerge@metadata$logFC<- logFC
-  scesMerge@metadata$FDR<-FDR
-  scesMerge@metadata$sampleRatio<-sampleRatio
-  scesMerge@metadata$nHVGs<-nHVGs
-  scesMerge@metadata$nPCs<-nPCs
+  if(pwComparison){
+    cat("Performing differential expression analysis data ...\n")
+    scesMerge@metadata$diffFC <- .getDiffGenes(scesMerge, organism = organism,  logFC=logFC, FDR = FDR, geneNo = 50)
+    scesMerge@metadata$logFC<- logFC
+    scesMerge@metadata$FDR<-FDR
+    scesMerge@metadata$sampleRatio<-sampleRatio
+    scesMerge@metadata$nHVGs<-nHVGs
+    scesMerge@metadata$nPCs<-nPCs
+  }
   
   return(scesMerge)
 }
@@ -291,6 +295,7 @@ Combine_scRNAseq <- function(sces, nHVGs=1000, nPCs= 10, logFC=1,FDR=0.01,sample
 #' @param outputFile the name of the output file (default: report.html)
 #' @param lineSize float; the line size of figures in the generated report (default: 1)
 #' @param pointSize float; the point size of figures in the generated report (default: 0.8)
+#' @param pwComparison logical; default is False, pairwise comparison
 #' @examples
 #' library(scRNABatchQC)
 #' sces<-Process_scRNAseq(inputs=c("https://github.com/liuqivandy/scRNABatchQC/raw/master/bioplar1.csv.gz","https://github.com/liuqivandy/scRNABatchQC/raw/master/bioplar5.csv.gz"))
@@ -302,13 +307,13 @@ Combine_scRNAseq <- function(sces, nHVGs=1000, nPCs= 10, logFC=1,FDR=0.01,sample
 #' @export
 
 #' @seealso \code{\link{Process_scRNAseq}} \code{\link{Combine_scRNAseq}}
-generateReport<-function(sces, scesMerge, outputFile="report.html", lineSize=1, pointSize=0.8) {
+generateReport<-function(sces, scesMerge, outputFile="report.html", lineSize=1, pointSize=0.8, pwComparison = FALSE, saturation = NULL) {
   pw <- .prepareTableSummary(sces)
   plotData <- list(sces = sces, 
                    scesMerge = scesMerge, 
+                   pwComparison = pwComparison,
                    tableSummary = pw,
                    lineSize=lineSize,
-                   pointSize=pointSize)
   
   cat("Report html generated.\n")
   reportRmd <- system.file("report/scRNABatchQCreport.Rmd", package="scRNABatchQC")
