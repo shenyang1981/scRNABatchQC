@@ -26,6 +26,7 @@
 #' @param chunk.size NULL or integer; default is NULL, suggesting data will be loaded into memory at one time, otherwise, the data will be loaded into memory by chunks with chunk.size
 #' @param createReport logical; default is TRUE, suggesting html report file will be created
 #' @param pwComparison logical; default is False, pairwise comparison
+#' @param saturation data.table; for ploting saturation curve
 #' @return a list of SingleCellExperiment objects;
 #'  \itemize{
 #'  \item  {       sces: a list of SingleCellExperiment objects; each object contains technical and biological metadata for one scRNAseq dataset; see the output of  \code{\link{Process_scRNAseq} }}
@@ -296,6 +297,7 @@ Combine_scRNAseq <- function(sces, nHVGs=1000, nPCs= 10, logFC=1,FDR=0.01,sample
 #' @param lineSize float; the line size of figures in the generated report (default: 1)
 #' @param pointSize float; the point size of figures in the generated report (default: 0.8)
 #' @param pwComparison logical; default is False, pairwise comparison
+#' @param saturation data.table; for plotting saturation curve
 #' @examples
 #' library(scRNABatchQC)
 #' sces<-Process_scRNAseq(inputs=c("https://github.com/liuqivandy/scRNABatchQC/raw/master/bioplar1.csv.gz","https://github.com/liuqivandy/scRNABatchQC/raw/master/bioplar5.csv.gz"))
@@ -314,6 +316,8 @@ generateReport<-function(sces, scesMerge, outputFile="report.html", lineSize=1, 
                    pwComparison = pwComparison,
                    tableSummary = pw,
                    lineSize=lineSize,
+                   pointSize=pointSize,
+                   saturation = saturation)
   
   cat("Report html generated.\n")
   reportRmd <- system.file("report/scRNABatchQCreport.Rmd", package="scRNABatchQC")

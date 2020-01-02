@@ -129,6 +129,14 @@ plotHeatmap<-function(datam,feature=c("hvg","hvgPath","PCg","PCgPath","diffg","d
 	}
 }
 
+plotSaturation = function(plotDataSat){
+  p = ggplot(plotDataSat, aes(x = readsPerCell, y = saturation, col = sampleID)) + 
+    geom_line() +
+    theme_bw() +
+    theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+  return(p)
+}
+
 ```
 
 ```{r data, include=FALSE, cache=FALSE}
@@ -150,6 +158,7 @@ hasComparison <- length(sces) > 1 && plotData$pwComparison
 
 isInteractive <- length(sces) > 6
 
+hasSaturation <- ifelse(is.null(plotData$saturation), F, T)
 
 heatmapKeysize<-1
 heatmapColors<-bluered(75)
@@ -334,6 +343,16 @@ if(isInteractive){
 
 <hr>
 
+```{r plotSaturation, eval = hasSaturation, echo=FALSE, warning=FALSE, message=FALSE, results='asis', fig.align="center", fig.cap="Saturation curve", fig.height=4}
+if(isInteractive){
+  plotly::ggplotly(plotSaturation(plotData$saturation))
+} else {
+  print(plotSaturation(plotData$saturation))
+}
+
+```
+
+<hr>
 
 
 ```{r child="scRNABatchQCreport_biological.Rmd", echo=FALSE}
