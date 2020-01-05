@@ -326,7 +326,7 @@ generateReport<-function(sces, scesMerge, outputFile="report.html", lineSize=1, 
   outputFile <- getAbsolutePath(outputFile)
   output_dir = dirname(outputFile)
   output_file = basename(outputFile)
-  
+  browser()
   cat("Output report to:", outputFile, "\n")
   rmarkdown::render(reportRmd,
                     output_dir = output_dir,
