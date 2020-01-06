@@ -331,6 +331,7 @@ generateReport<-function(sces, scesMerge, outputFile="report.html", lineSize=1, 
   rmarkdown::render(reportRmd,
                     output_dir = output_dir,
                     output_file = output_file,
+                    intermediates_dir = output_dir,
                     params = list(data = plotData))
 }
 
